@@ -67,8 +67,8 @@ echo "Memory: ${MEM_PCT:-?}%"
 $COLIMA ssh -- free -h 2>/dev/null | awk '
   /^Mem:/{printf "  %s / %s (%s free)\n", $3, $2, $4}
 '
-$COLIMA ssh -- df -h / 2>/dev/null | awk '
-  NR==2{printf "Disk: %s / %s (%s)\n", $3, $2, $5}
+$COLIMA ssh -- df -h 2>/dev/null | awk '
+  $1 ~ /^\/dev\/vdb/ {printf "Disk: %s / %s (%s)\n", $3, $2, $5; exit}
 '
 echo "CPUs: $($COLIMA list 2>/dev/null | awk 'NR==2{print $4}')"
 echo "Load: $($COLIMA ssh -- cat /proc/loadavg 2>/dev/null | awk '{print $1, $2, $3}')"
