@@ -62,20 +62,21 @@ echo "---"
 # Dropdown details
 echo "Colima VM | size=14"
 echo "---"
-echo "CPU: ${CPU_PCT:-?}%"
-$COLIMA ssh -- free -m 2>/dev/null | awk -v pct="${MEM_PCT:-?}" '
-  /^Mem:/{printf "Memory: %.1fG / %.1fG (%s%%)\n", ($2-$7)/1024, $2/1024, pct}
+FMT="| font=Menlo"
+printf "%-10s%s%% %s\n" "CPU" "${CPU_PCT:-?}" "$FMT"
+$COLIMA ssh -- free -m 2>/dev/null | awk -v pct="${MEM_PCT:-?}" -v fmt="$FMT" '
+  /^Mem:/{printf "%-10s%.1fG / %.1fG (%s%%) %s\n", "Memory", ($2-$7)/1024, $2/1024, pct, fmt}
 '
-$COLIMA ssh -- cat /proc/pressure/memory 2>/dev/null | awk '
+$COLIMA ssh -- cat /proc/pressure/memory 2>/dev/null | awk -v fmt="$FMT" '
   /^some/{split($2,a,"="); split($3,b,"="); split($4,c,"=")
-    if (a[2]+0 > 0) printf "  ⚠ pressure %s%% / %s%% / %s%%\n", a[2], b[2], c[2]
+    if (a[2]+0 > 0) printf "%-10s⚠ %s%% / %s%% / %s%% %s\n", "Pressure", a[2], b[2], c[2], fmt
   }
 '
-$COLIMA ssh -- df -h 2>/dev/null | awk '
-  $1 ~ /^\/dev\/vdb/ {printf "Disk: %s / %s (%s)\n", $3, $2, $5; exit}
+$COLIMA ssh -- df -h 2>/dev/null | awk -v fmt="$FMT" '
+  $1 ~ /^\/dev\/vdb/ {printf "%-10s%s / %s (%s) %s\n", "Disk", $3, $2, $5, fmt; exit}
 '
-echo "CPUs: $($COLIMA list 2>/dev/null | awk 'NR==2{print $4}')"
-echo "Load: $($COLIMA ssh -- cat /proc/loadavg 2>/dev/null | awk '{print $1, $2, $3}')"
+printf "%-10s%s %s\n" "CPUs" "$($COLIMA list 2>/dev/null | awk 'NR==2{print $4}')" "$FMT"
+printf "%-10s%s %s\n" "Load" "$($COLIMA ssh -- cat /proc/loadavg 2>/dev/null | awk '{print $1, $2, $3}')" "$FMT"
 echo "---"
 echo "Stop Colima | bash=$COLIMA param1=stop terminal=true refresh=true"
 echo "Restart Colima | bash=$COLIMA param1=restart terminal=true refresh=true"
