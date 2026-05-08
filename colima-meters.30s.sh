@@ -30,7 +30,7 @@ if ! $COLIMA list 2>/dev/null | awk 'NR==2{print $2}' | grep -q Running; then
 fi
 
 # Get raw percentages (integers)
-MEM_PCT=$($COLIMA ssh -- free -m 2>/dev/null | awk '/^Mem:/{printf "%d", $3/$2*100}')
+MEM_PCT=$($COLIMA ssh -- free -m 2>/dev/null | awk '/^Mem:/{printf "%d", ($2-$7)/$2*100}')
 CPU_PCT=$($COLIMA ssh -- vmstat 1 2 2>/dev/null | awk 'END{printf "%d", 100-$15}')
 
 # Map CPU to gauge icon and color (5 levels)
@@ -63,9 +63,13 @@ echo "---"
 echo "Colima VM | size=14"
 echo "---"
 echo "CPU: ${CPU_PCT:-?}%"
-echo "Memory: ${MEM_PCT:-?}%"
-$COLIMA ssh -- free -h 2>/dev/null | awk '
-  /^Mem:/{printf "  %s / %s (%s free)\n", $3, $2, $4}
+$COLIMA ssh -- free -m 2>/dev/null | awk -v pct="${MEM_PCT:-?}" '
+  /^Mem:/{printf "Memory: %.1fG / %.1fG (%s%%)\n", ($2-$7)/1024, $2/1024, pct}
+'
+$COLIMA ssh -- cat /proc/pressure/memory 2>/dev/null | awk '
+  /^some/{split($2,a,"="); split($3,b,"="); split($4,c,"=")
+    if (a[2]+0 > 0) printf "  ⚠ pressure %s%% / %s%% / %s%%\n", a[2], b[2], c[2]
+  }
 '
 $COLIMA ssh -- df -h 2>/dev/null | awk '
   $1 ~ /^\/dev\/vdb/ {printf "Disk: %s / %s (%s)\n", $3, $2, $5; exit}
